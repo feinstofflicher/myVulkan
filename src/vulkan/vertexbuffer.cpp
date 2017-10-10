@@ -2,6 +2,8 @@
 #include "vulkanhelper.h"
 #include "device.h"
 
+const static bool useStaging = true;
+
 namespace
 {
     VkFormat getAttributeFormat(uint32_t numVertices)
@@ -18,7 +20,7 @@ namespace
     }
 }
 
-void VertexBuffer::init(Device* device, const std::vector<Description>& descriptions)
+void VertexBuffer::init(Device* device, const std::vector<AttributeDescription>& descriptions)
 {
     if (descriptions.size() == 0)
         return;
@@ -50,77 +52,106 @@ void VertexBuffer::init(Device* device, const std::vector<Description>& descript
         totalSize += desc.vertexCount * attributeSize;
     }
 
-    const bool useStaging = true;
+    auto memcpyFunc = [&](void *mappedMemory)
+    {
+        auto data = reinterpret_cast<float*>(mappedMemory);
+        for (auto& desc : descriptions)
+        {
+            const auto attributeSize = desc.componentCount * desc.vertexCount;
+            memcpy(data, desc.vertexData, attributeSize * 4);
+            data += attributeSize;
+        }
+    };
+
+    createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, totalSize, m_vertexBuffer, m_vertexBufferMemory, memcpyFunc);
+}
+
+void VertexBuffer::createBuffer(VkBufferUsageFlags usage, uint32_t size, VkBuffer& buffer, VkDeviceMemory& bufferMemory, const MemcpyFunc& memcpyFunc)
+{
     if (useStaging)
     {
+        // TODO: use single persistent staging buffer?
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
 
-        m_device->createBuffer(totalSize,
+        m_device->createBuffer(size,
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
             stagingBuffer, stagingBufferMemory);
 
-        mapMemory(descriptions, stagingBufferMemory);
+        mapMemory(stagingBufferMemory, memcpyFunc);
 
-        m_device->createBuffer(totalSize,
-            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        m_device->createBuffer(size,
+            VK_BUFFER_USAGE_TRANSFER_DST_BIT | usage,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            m_vertexBuffer, m_vertexBufferMemory);
+            buffer, bufferMemory);
 
-        m_device->copyBuffer(stagingBuffer, m_vertexBuffer, totalSize);
+        m_device->copyBuffer(stagingBuffer, buffer, size);
 
         vkDestroyBuffer(m_device->getVkDevice(), stagingBuffer, nullptr);
         vkFreeMemory(m_device->getVkDevice(), stagingBufferMemory, nullptr);
     }
     else
     {
-        m_device->createBuffer(totalSize,
-            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        m_device->createBuffer(size,
+            usage,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            m_vertexBuffer, m_vertexBufferMemory);
+            buffer, bufferMemory);
 
-        mapMemory(descriptions, m_vertexBufferMemory);
+        mapMemory(bufferMemory, memcpyFunc);
     }
 }
 
-void VertexBuffer::destroy()
-{
-    vkDestroyBuffer(m_device->getVkDevice(), m_vertexBuffer, nullptr);
-    m_vertexBuffer = VK_NULL_HANDLE;
-
-    vkFreeMemory(m_device->getVkDevice(), m_vertexBufferMemory, nullptr);
-    m_vertexBufferMemory = VK_NULL_HANDLE;
-}
-
-void VertexBuffer::mapMemory(const std::vector<Description>& descriptions, VkDeviceMemory bufferMemory)
+void VertexBuffer::mapMemory(VkDeviceMemory bufferMemory, const MemcpyFunc& memcpyFunc)
 {
     void* mappedMemory;
     VK_CHECK_RESULT(vkMapMemory(m_device->getVkDevice(), bufferMemory, 0, VK_WHOLE_SIZE, 0, &mappedMemory));
-    auto data = reinterpret_cast<float*>(mappedMemory);
-    for (auto& desc : descriptions)
-    {
-        const auto attributeSize = desc.componentCount * desc.vertexCount;
-        memcpy(data, desc.vertexData, attributeSize * 4);
-        data += attributeSize;
-    }
+    memcpyFunc(mappedMemory);
     vkUnmapMemory(m_device->getVkDevice(), bufferMemory);
 }
 
-void VertexBuffer::bind(VkCommandBuffer commandBuffer) const
+void VertexBuffer::setIndices(const uint16_t *indices, uint32_t numIndices)
 {
-    VkBuffer vertexBuffers[] = { m_vertexBuffer };
-    VkDeviceSize offsets[] = { 0 };
+     createIndexBuffer(indices, numIndices, VK_INDEX_TYPE_UINT16);
+}
+
+void VertexBuffer::setIndices(const uint32_t *indices, uint32_t numIndices)
+{
+     createIndexBuffer(indices, numIndices, VK_INDEX_TYPE_UINT32);
+}
+
+void VertexBuffer::createIndexBuffer(const void *indices, uint32_t numIndices, VkIndexType indexType)
+{
+    m_numIndices = numIndices;
+    m_indexType = indexType;
+
+    const uint32_t size = numIndices * (indexType == VK_INDEX_TYPE_UINT16 ? sizeof(uint16_t) : sizeof(uint32_t));
+
+    auto memcpyFunc = [=](void *mappedMemory) {
+        memcpy(mappedMemory, indices, size);
+    };
+
+    createBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, size, m_indexBuffer, m_indexBufferMemory, memcpyFunc);
+}
+
+void VertexBuffer::draw(VkCommandBuffer commandBuffer) const
+{
+    const VkDeviceSize offset = 0;
 
     for (auto i = 0; i < m_bindingDescriptions.size(); i++)
     {
-        vkCmdBindVertexBuffers(commandBuffer, i, 1, vertexBuffers, offsets);
+        vkCmdBindVertexBuffers(commandBuffer, i, 1, &m_vertexBuffer, &offset);
     }
-}
 
-uint32_t VertexBuffer::numVertices() const
-{
-    return m_numVertices;
+    if (m_indexBuffer != VK_NULL_HANDLE)
+    {
+        vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer, 0, m_indexType);
+        vkCmdDrawIndexed(commandBuffer, m_numIndices, 1, 0, 0, 0);
+    }
+    else
+    {
+        vkCmdDraw(commandBuffer, m_numVertices, 1, 0, 0);
+    }
 }
 
 const std::vector<VkVertexInputAttributeDescription>& VertexBuffer::getAttributeDescriptions() const
@@ -131,4 +162,20 @@ const std::vector<VkVertexInputAttributeDescription>& VertexBuffer::getAttribute
 const std::vector<VkVertexInputBindingDescription>& VertexBuffer::getBindingDescriptions() const
 {
     return m_bindingDescriptions;
+}
+
+void VertexBuffer::destroy()
+{
+    vkDestroyBuffer(m_device->getVkDevice(), m_vertexBuffer, nullptr);
+    m_vertexBuffer = VK_NULL_HANDLE;
+    vkFreeMemory(m_device->getVkDevice(), m_vertexBufferMemory, nullptr);
+    m_vertexBufferMemory = VK_NULL_HANDLE;
+
+    if (m_indexBuffer != VK_NULL_HANDLE)
+    {
+        vkDestroyBuffer(m_device->getVkDevice(), m_indexBuffer, nullptr);
+        m_indexBuffer = VK_NULL_HANDLE;
+        vkFreeMemory(m_device->getVkDevice(), m_indexBufferMemory, nullptr);
+        m_indexBufferMemory = VK_NULL_HANDLE;
+    }
 }
