@@ -71,6 +71,8 @@ bool Device::init(VkInstance instance, VkSurfaceKHR surface, bool enableValidati
     vkGetDeviceQueue(m_device, m_presentQueueFamilyIndex, 0, &m_presentQueue);
     vkGetDeviceQueue(m_device, m_graphicsQueueFamilyIndex, 0, &m_graphicsQueue);
 
+    createCommandPool();
+
     return true;
 }
 
@@ -152,8 +154,20 @@ bool Device::checkPhysicalDeviceProperties(VkPhysicalDevice physicalDevice, VkSu
     return true;
 }
 
+void Device::createCommandPool()
+{
+    VkCommandPoolCreateInfo poolInfo = {};
+    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    poolInfo.queueFamilyIndex = m_graphicsQueueFamilyIndex;
+
+    VK_CHECK_RESULT(vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPool));
+}
+
 void Device::destroy()
 {
+    vkDestroyCommandPool(m_device, m_commandPool, nullptr);
+    m_commandPool = VK_NULL_HANDLE;
+
     vkDestroyDevice(m_device, nullptr);
     m_device = VK_NULL_HANDLE;
 }

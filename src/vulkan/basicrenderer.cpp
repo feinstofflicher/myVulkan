@@ -20,7 +20,6 @@ bool BasicRenderer::init(SDL_Window* window)
     SDL_Vulkan_CreateSurface(window, m_instance, &m_surface);
 
     createDevice();
-    createCommandPool();
     createSwapChain(window);
     m_renderPass.init(m_device.getVkDevice(), m_swapChain.getImageFormat());
 
@@ -94,24 +93,13 @@ bool BasicRenderer::createDevice()
     return m_device.init(m_instance, m_surface, enableValidationLayers);
 }
 
-bool BasicRenderer::createCommandPool()
-{
-    VkCommandPoolCreateInfo poolInfo = {};
-    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    poolInfo.queueFamilyIndex = m_device.getGraphicsQueueFamilyIndex();
-
-    VK_CHECK_RESULT(vkCreateCommandPool(m_device.getVkDevice(), &poolInfo, nullptr, &m_commandPool));
-
-    return true;
-}
-
 bool BasicRenderer::createCommandBuffers()
 {
     m_commandBuffers.resize(m_swapChain.getImageCount());
 
     VkCommandBufferAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = m_commandPool;
+    allocInfo.commandPool = m_device.getCommandPool();
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandBufferCount = static_cast<uint32_t>(m_commandBuffers.size());
 
@@ -145,8 +133,6 @@ void BasicRenderer::destroy()
     destroyFramebuffers();
     destroyCommandBuffers();
     m_swapChain.destroy();
-
-    vkDestroyCommandPool(m_device.getVkDevice(), m_commandPool, nullptr);
 
     shutdown();
 
@@ -187,7 +173,7 @@ void BasicRenderer::destroyFramebuffers()
 
 void BasicRenderer::destroyCommandBuffers()
 {
-    vkFreeCommandBuffers(m_device.getVkDevice(), m_commandPool, static_cast<uint32_t>(m_commandBuffers.size()), m_commandBuffers.data());
+    vkFreeCommandBuffers(m_device.getVkDevice(), m_device.getCommandPool(), static_cast<uint32_t>(m_commandBuffers.size()), m_commandBuffers.data());
 }
 
 void BasicRenderer::draw()

@@ -23,7 +23,6 @@ private:
     bool createInstance(SDL_Window* window);
     bool createDevice();
     bool createSwapChain(SDL_Window* window);
-    bool createCommandPool();
     bool createCommandBuffers();
     bool createSwapChainFramebuffers();
 
@@ -39,7 +38,6 @@ private:
 
     VkInstance m_instance = VK_NULL_HANDLE;
     VkSurfaceKHR m_surface = VK_NULL_HANDLE;
-    VkCommandPool m_commandPool = VK_NULL_HANDLE;
 
 protected:
     Device m_device;

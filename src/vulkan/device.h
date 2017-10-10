@@ -12,10 +12,11 @@ public:
     VkPhysicalDevice getVkPysicalDevice() const { return m_physicalDevice; };
     VkQueue getPresentationQueue() const { return m_presentQueue; };
     VkQueue getGraphicsQueue() const { return m_graphicsQueue; };
-    uint32_t getGraphicsQueueFamilyIndex() const { return m_graphicsQueueFamilyIndex; };
+    VkCommandPool getCommandPool() const { return m_commandPool; };
 
 private:
     bool checkPhysicalDeviceProperties(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
+    void createCommandPool();
 
     VkDevice m_device = VK_NULL_HANDLE;
     VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
@@ -23,4 +24,5 @@ private:
     uint32_t m_graphicsQueueFamilyIndex = UINT32_MAX;
     VkQueue m_presentQueue = VK_NULL_HANDLE;
     VkQueue m_graphicsQueue = VK_NULL_HANDLE;
+    VkCommandPool m_commandPool = VK_NULL_HANDLE;
 };
