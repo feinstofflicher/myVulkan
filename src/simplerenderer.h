@@ -3,6 +3,7 @@
 #include "vulkan/basicrenderer.h"
 #include "vulkan/shader.h"
 #include "vulkan/pipeline.h"
+#include "vulkan/vertexbuffer.h"
 
 class SimpleRenderer : public BasicRenderer
 {
@@ -13,5 +14,6 @@ private:
 
     PipelineLayout m_pipelineLayout;
     Pipeline m_pipeline;
+    VertexBuffer m_vertexBuffer;
     Shader m_shader;
 };

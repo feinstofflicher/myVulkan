@@ -32,10 +32,18 @@ public:
     static VkDynamicState dynamicStates[2];
 };
 
+class VertexBuffer;
+
 class Pipeline
 {
 public:
-    bool init(VkDevice device, VkRenderPass renderPass, VkPipelineLayout layout, const PipelineSettings& settings, std::vector<VkPipelineShaderStageCreateInfo> shaderStages);
+    bool init(VkDevice device,
+        VkRenderPass renderPass,
+        VkPipelineLayout layout,
+        const PipelineSettings& settings,
+        std::vector<VkPipelineShaderStageCreateInfo> shaderStages,
+        VertexBuffer* vertexbuffer = nullptr);
+
     void destroy();
 
     VkPipeline getVkPipeline() const { return m_pipeline; }

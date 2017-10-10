@@ -1,5 +1,6 @@
 #include "pipeline.h"
 #include "vulkanhelper.h"
+#include "vertexbuffer.h"
 
 void PipelineLayout::init(VkDevice device)
 {
@@ -90,7 +91,12 @@ PipelineSettings::PipelineSettings()
 
 //////////////////////////////////////////////////////////////////////////
 
-bool Pipeline::init(VkDevice device, VkRenderPass renderPass, VkPipelineLayout layout, const PipelineSettings& settings, std::vector<VkPipelineShaderStageCreateInfo> shaderStages)
+bool Pipeline::init(VkDevice device,
+    VkRenderPass renderPass,
+    VkPipelineLayout layout,
+    const PipelineSettings& settings,
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStages,
+    VertexBuffer* vertexbuffer)
 {
     assert(shaderStages.size() > 0);
 
@@ -99,10 +105,10 @@ bool Pipeline::init(VkDevice device, VkRenderPass renderPass, VkPipelineLayout l
     VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertexInputInfo.flags = 0;
-    vertexInputInfo.vertexBindingDescriptionCount = 0;
-    vertexInputInfo.pVertexBindingDescriptions = nullptr;
-    vertexInputInfo.vertexAttributeDescriptionCount = 0;
-    vertexInputInfo.pVertexAttributeDescriptions = nullptr;
+    vertexInputInfo.vertexBindingDescriptionCount = vertexbuffer ? static_cast<uint32_t>(vertexbuffer->getBindingDescriptions().size()) : 0;
+    vertexInputInfo.pVertexBindingDescriptions = vertexbuffer ? &vertexbuffer->getBindingDescriptions()[0] : nullptr;
+    vertexInputInfo.vertexAttributeDescriptionCount = vertexbuffer ? static_cast<uint32_t>(vertexbuffer->getAttributeDescriptions().size()) : 0;
+    vertexInputInfo.pVertexAttributeDescriptions = vertexbuffer ? &vertexbuffer->getAttributeDescriptions()[0] : nullptr;
 
     VkGraphicsPipelineCreateInfo pipelineInfo = {};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;

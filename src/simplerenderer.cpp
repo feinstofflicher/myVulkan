@@ -6,13 +6,35 @@ bool SimpleRenderer::setup()
     m_pipelineLayout.init(m_device.getVkDevice());
     m_shader.createFromFiles(m_device.getVkDevice(), "shaders/simple.vert.spv", "shaders/simple.frag.spv");
 
+    const float vertices[] = {
+        0.0, -0.5,
+        0.5,  0.5,
+       -0.5,  0.5
+    };
+
+    const float colors[] = {
+        1.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 1.0f
+    };
+
+    const std::vector<VertexBuffer::Description> descs =
+    {
+        { 0, 2, 3, vertices },
+        { 1, 3, 3, colors }
+    };
+
+    m_vertexBuffer.init(&m_device, descs);
+
+
     PipelineSettings settings;
 
     m_pipeline.init(m_device.getVkDevice(),
         m_renderPass.getVkRenderPass(),
         m_pipelineLayout.getVkPipelineLayout(),
         settings,
-        m_shader.getShaderStages());
+        m_shader.getShaderStages(),
+        &m_vertexBuffer);
 
     return true;
 }
@@ -20,6 +42,7 @@ bool SimpleRenderer::setup()
 void SimpleRenderer::shutdown()
 {
     m_shader.destory();
+    m_vertexBuffer.destroy();
     m_pipeline.destroy();
     m_pipelineLayout.destroy();
 }
@@ -54,7 +77,9 @@ void SimpleRenderer::fillCommandBuffers()
 
         vkCmdBindPipeline(m_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getVkPipeline());
 
-        vkCmdDraw(m_commandBuffers[i], 3, 1, 0, 0);
+        m_vertexBuffer.bind(m_commandBuffers[i]);
+
+        vkCmdDraw(m_commandBuffers[i], m_vertexBuffer.numVertices(), 1, 0, 0);
 
         vkCmdEndRenderPass(m_commandBuffers[i]);
 

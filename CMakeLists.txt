@@ -28,6 +28,8 @@ set(VULKAN_SOURCES
     src/vulkan/renderpass.cpp
     src/vulkan/framebuffer.h
     src/vulkan/framebuffer.cpp
+    src/vulkan/vertexbuffer.h
+    src/vulkan/vertexbuffer.cpp
 )
 
 set(SOURCES
