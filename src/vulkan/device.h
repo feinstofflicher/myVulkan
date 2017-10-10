@@ -8,6 +8,9 @@ public:
     bool init(VkInstance instance, VkSurfaceKHR surface, bool enableValidationLayers);
     void destroy();
 
+    void createBuffer(uint32_t size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
+    void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+
     VkDevice getVkDevice() const { return m_device; };
     VkPhysicalDevice getVkPysicalDevice() const { return m_physicalDevice; };
     VkQueue getPresentationQueue() const { return m_presentQueue; };
@@ -17,6 +20,8 @@ public:
 private:
     bool checkPhysicalDeviceProperties(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
     void createCommandPool();
+
+    static uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
     VkDevice m_device = VK_NULL_HANDLE;
     VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;

@@ -50,12 +50,53 @@ void VertexBuffer::init(Device* device, const std::vector<Description>& descript
         totalSize += desc.vertexCount * attributeSize;
     }
 
-    createVertexBuffer(totalSize);
+    const bool useStaging = true;
+    if (useStaging)
+    {
+        VkBuffer stagingBuffer;
+        VkDeviceMemory stagingBufferMemory;
 
-    VK_CHECK_RESULT(vkBindBufferMemory(m_device->getVkDevice(), m_vertexBuffer, m_vertexBufferMemory, 0));
+        m_device->createBuffer(totalSize,
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            stagingBuffer, stagingBufferMemory);
 
+        mapMemory(descriptions, stagingBufferMemory);
+
+        m_device->createBuffer(totalSize,
+            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            m_vertexBuffer, m_vertexBufferMemory);
+
+        m_device->copyBuffer(stagingBuffer, m_vertexBuffer, totalSize);
+
+        vkDestroyBuffer(m_device->getVkDevice(), stagingBuffer, nullptr);
+        vkFreeMemory(m_device->getVkDevice(), stagingBufferMemory, nullptr);
+    }
+    else
+    {
+        m_device->createBuffer(totalSize,
+            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            m_vertexBuffer, m_vertexBufferMemory);
+
+        mapMemory(descriptions, m_vertexBufferMemory);
+    }
+}
+
+void VertexBuffer::destroy()
+{
+    vkDestroyBuffer(m_device->getVkDevice(), m_vertexBuffer, nullptr);
+    m_vertexBuffer = VK_NULL_HANDLE;
+
+    vkFreeMemory(m_device->getVkDevice(), m_vertexBufferMemory, nullptr);
+    m_vertexBufferMemory = VK_NULL_HANDLE;
+}
+
+void VertexBuffer::mapMemory(const std::vector<Description>& descriptions, VkDeviceMemory bufferMemory)
+{
     void* mappedMemory;
-    VK_CHECK_RESULT(vkMapMemory(m_device->getVkDevice(), m_vertexBufferMemory, 0, totalSize, 0, &mappedMemory));
+    VK_CHECK_RESULT(vkMapMemory(m_device->getVkDevice(), bufferMemory, 0, VK_WHOLE_SIZE, 0, &mappedMemory));
     auto data = reinterpret_cast<float*>(mappedMemory);
     for (auto& desc : descriptions)
     {
@@ -63,50 +104,7 @@ void VertexBuffer::init(Device* device, const std::vector<Description>& descript
         memcpy(data, desc.vertexData, attributeSize * 4);
         data += attributeSize;
     }
-    vkUnmapMemory(m_device->getVkDevice(), m_vertexBufferMemory);
-}
-
-void VertexBuffer::destroy()
-{
-    vkDestroyBuffer(m_device->getVkDevice(), m_vertexBuffer, nullptr);
-    vkFreeMemory(m_device->getVkDevice(), m_vertexBufferMemory, nullptr);
-}
-
-void VertexBuffer::createVertexBuffer(uint32_t size)
-{
-    VkBufferCreateInfo bufferInfo = {};
-    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = size;
-    bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-    VK_CHECK_RESULT(vkCreateBuffer(m_device->getVkDevice(), &bufferInfo, nullptr, &m_vertexBuffer));
-
-    VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(m_device->getVkDevice(), m_vertexBuffer, &memRequirements);
-
-    VkMemoryAllocateInfo allocInfo = {};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = findMemoryType(m_device->getVkPysicalDevice(), memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-    VK_CHECK_RESULT(vkAllocateMemory(m_device->getVkDevice(), &allocInfo, nullptr, &m_vertexBufferMemory));
-}
-
-uint32_t VertexBuffer::findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties)
-{
-    VkPhysicalDeviceMemoryProperties memProperties;
-    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
-
-    for (auto i = 0u; i < memProperties.memoryTypeCount; i++)
-    {
-        if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) 
-        {
-            return i;
-        }
-    }
-
-    return ~0u;
+    vkUnmapMemory(m_device->getVkDevice(), bufferMemory);
 }
 
 void VertexBuffer::bind(VkCommandBuffer commandBuffer) const

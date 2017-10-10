@@ -34,8 +34,7 @@ public:
     const std::vector<VkVertexInputAttributeDescription>& getAttributeDescriptions() const;
 
 private:
-    void createVertexBuffer(uint32_t size);
-    static uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);
+    void mapMemory(const std::vector<Description>& descriptions, VkDeviceMemory bufferMemory);
 
     Device* m_device = nullptr;
     VkBuffer m_vertexBuffer = VK_NULL_HANDLE;
