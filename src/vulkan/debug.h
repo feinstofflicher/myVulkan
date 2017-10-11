@@ -3,7 +3,7 @@
 namespace debug
 {
     extern int32_t validationLayerCount;
-    const char* validationLayerNames[];
+    extern const char* validationLayerNames[];
 
     VkBool32 debugCallback(
         VkDebugReportFlagsEXT flags,

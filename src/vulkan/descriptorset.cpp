@@ -3,7 +3,7 @@
 
 void DescriptorSet::addSampler(VkImageView textureImageView, VkSampler sampler)
 {
-    const uint32_t bindingId = m_descriptorWrites.size();
+    const uint32_t bindingId = static_cast<uint32_t>(m_descriptorWrites.size());
 
     m_poolSizes.push_back({ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER , 1 });
 

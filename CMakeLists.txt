@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 3.7)
 
 project(myVulkan)
 
-set(SDL2_DIR externals/SDL2-2.0.6)
+if(MSVC)
+    set(SDL2_DIR externals/SDL2-2.0.6)
+endif()
 find_package(SDL2 REQUIRED)
 include_directories(${SDL2_INCLUDE_DIRS})
 
@@ -65,12 +67,13 @@ target_link_libraries(${PROJECT_NAME}
 
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE "/MP")
-endif()
 
-ADD_CUSTOM_COMMAND( TARGET ${PROJECT_NAME}
-   POST_BUILD
-   COMMAND ${CMAKE_COMMAND} ARGS -E copy_if_different ${SDL2_RUNTIME_LIBRARIES} ${CMAKE_CURRENT_BINARY_DIR}
-)
+    ADD_CUSTOM_COMMAND(
+        TARGET ${PROJECT_NAME}
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} ARGS -E copy_if_different ${SDL2_RUNTIME_LIBRARIES} ${CMAKE_CURRENT_BINARY_DIR}
+    )
+endif()
 
 file(COPY ${TEXTURE_DIR}
      DESTINATION ${CMAKE_BINARY_DIR}/${RESOURCE_DIR})

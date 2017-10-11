@@ -42,7 +42,7 @@ VkShaderModule Shader::CreateShaderModule(VkDevice device, const std::string& fi
 {
     std::ifstream file(filename, std::ios::ate | std::ios::binary);
     if (!file.is_open())
-        return false;
+        return VK_NULL_HANDLE;
 
     size_t fileSize = static_cast<size_t>(file.tellg());
     std::vector<char> buffer(fileSize);
