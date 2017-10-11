@@ -1,4 +1,4 @@
-#include "swapChain.h"
+#include "swapchain.h"
 #include "device.h"
 #include "vulkanhelper.h"
 
@@ -196,11 +196,11 @@ bool SwapChain::create(uint32_t width, uint32_t height, bool vsync)
 
     m_surfaceFormat = getSwapChainFormat(surfaceFormats);
     m_extent        = getSwapChainExtent(surfCaps);
-    
+
     if (m_extent.width * m_extent.height == 0)
         return false;
 
-    uint32_t                      imageCount = getSwapChainNumImages(surfCaps);    
+    uint32_t                      imageCount = getSwapChainNumImages(surfCaps);
     VkImageUsageFlags             usage = getSwapChainUsageFlags(surfCaps);
     VkSurfaceTransformFlagBitsKHR transform = getSwapChainTransform(surfCaps);
     VkPresentModeKHR              presentMode = getSwapChainPresentMode(presentModes, vsync);
@@ -252,7 +252,7 @@ bool SwapChain::create(uint32_t width, uint32_t height, bool vsync)
     VK_CHECK_RESULT(vkGetSwapchainImagesKHR(m_device, m_swapChain, &imageCount, m_images.data()));
 
     createImageViews(imageCount);
-    
+
     return true;
 }
 
