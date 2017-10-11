@@ -42,8 +42,9 @@ set(SOURCES
     src/simplerenderer.cpp
 )
 
-set(TEXTURE_DIR data/textures)
-set(SHADER_DIR data/shaders)
+set(RESOURCE_DIR data)
+set(TEXTURE_DIR ${RESOURCE_DIR}/textures)
+set(SHADER_DIR ${RESOURCE_DIR}/shaders)
 file(GLOB SHADERS "${SHADER_DIR}/*.vert" "${SHADER_DIR}/*.frag")
 source_group("shaders" FILES ${SHADERS})
 source_group("source" FILES ${SOURCES})
@@ -69,10 +70,8 @@ ADD_CUSTOM_COMMAND( TARGET ${PROJECT_NAME}
    COMMAND ${CMAKE_COMMAND} ARGS -E copy_if_different ${SDL2_RUNTIME_LIBRARIES} ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-ADD_CUSTOM_COMMAND( TARGET ${PROJECT_NAME}
-   POST_BUILD
-   COMMAND ${CMAKE_COMMAND} ARGS -E copy ${TEXTURE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/${TEXTURE_DIR}
-)
+file(COPY ${TEXTURE_DIR}
+     DESTINATION ${CMAKE_BINARY_DIR}/${RESOURCE_DIR})
 
 find_program(GLSLANGVALIDATOR glslangValidator)
 
