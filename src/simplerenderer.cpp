@@ -3,14 +3,28 @@
 
 bool SimpleRenderer::setup()
 {
-    m_pipelineLayout.init(m_device.getVkDevice());
     m_shader.createFromFiles(m_device.getVkDevice(), "data/shaders/simple.vert.spv", "data/shaders/simple.frag.spv");
+    m_texture.loadFromFile(&m_device, "data/textures/vulkan.jpg");
 
+    m_device.createSampler(m_sampler);
+
+    m_descriptorSet.addSampler(m_texture.getImageView(), m_sampler);
+    m_descriptorSet.finalize(m_device.getVkDevice());
+
+    m_pipelineLayout.init(m_device.getVkDevice(), { m_descriptorSet.getLayout() });
+    
     const float vertices[] = {
-       -0.25, -0.5,
-        0.25, -0.5,
-        0.5,   0.5,
-       -0.5,   0.5
+       -0.5, -0.5,
+        0.5, -0.5,
+        0.5,  0.5,
+       -0.5,  0.5
+    };
+
+    const float texCoords[] = {
+        0.0, 0.0,
+        1.0, 0.0,
+        1.0, 1.0,
+        0.0, 1.0
     };
 
     const float colors[] = {
@@ -23,7 +37,8 @@ bool SimpleRenderer::setup()
     const std::vector<VertexBuffer::AttributeDescription> attribDesc =
     {
         { 0, 2, 4, vertices },
-        { 1, 3, 4, colors }
+        { 1, 2, 4, texCoords },
+        { 2, 3, 4, colors }
     };
 
     const uint16_t indices[] = { 0, 1, 2, 2, 3, 0 };
@@ -45,10 +60,13 @@ bool SimpleRenderer::setup()
 
 void SimpleRenderer::shutdown()
 {
+    m_descriptorSet.destroy(m_device.getVkDevice());
     m_shader.destory();
     m_vertexBuffer.destroy();
     m_pipeline.destroy();
     m_pipelineLayout.destroy();
+    m_texture.destroy();
+    vkDestroySampler(m_device.getVkDevice(), m_sampler, nullptr);
 }
 
 void SimpleRenderer::fillCommandBuffers()
@@ -81,7 +99,9 @@ void SimpleRenderer::fillCommandBuffers()
 
         vkCmdBindPipeline(m_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getVkPipeline());
 
-        m_vertexBuffer.draw(m_commandBuffers[i]);        
+        m_descriptorSet.bind(m_commandBuffers[i], m_pipelineLayout.getVkPipelineLayout());
+
+        m_vertexBuffer.draw(m_commandBuffers[i]);
 
         vkCmdEndRenderPass(m_commandBuffers[i]);
 

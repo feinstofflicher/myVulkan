@@ -2,15 +2,15 @@
 #include "vulkanhelper.h"
 #include "vertexbuffer.h"
 
-void PipelineLayout::init(VkDevice device)
+void PipelineLayout::init(VkDevice device, const std::vector<VkDescriptorSetLayout>& layouts)
 {
     m_device = device;
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.flags = 0;
-    pipelineLayoutInfo.setLayoutCount = 0;
-    pipelineLayoutInfo.pSetLayouts = nullptr;
+    pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(layouts.size());
+    pipelineLayoutInfo.pSetLayouts = layouts.size() ? layouts.data() : nullptr;
     pipelineLayoutInfo.pushConstantRangeCount = 0;
     pipelineLayoutInfo.pPushConstantRanges = nullptr;
 

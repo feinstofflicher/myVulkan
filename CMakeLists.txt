@@ -24,6 +24,8 @@ set(VULKAN_SOURCES
     src/vulkan/device.cpp
     src/vulkan/shader.h
     src/vulkan/shader.cpp
+    src/vulkan/descriptorset.h
+    src/vulkan/descriptorset.cpp
     src/vulkan/pipeline.h
     src/vulkan/pipeline.cpp
     src/vulkan/renderpass.h
