@@ -9,6 +9,8 @@ include_directories(${SDL2_INCLUDE_DIRS})
 find_package(Vulkan REQUIRED)
 include_directories(${Vulkan_INCLUDE_DIRS})
 
+include_directories(externals/stb)
+
 set(VULKAN_SOURCES
     src/vulkan/basicrenderer.h
     src/vulkan/basicrenderer.cpp
@@ -30,6 +32,8 @@ set(VULKAN_SOURCES
     src/vulkan/framebuffer.cpp
     src/vulkan/vertexbuffer.h
     src/vulkan/vertexbuffer.cpp
+    src/vulkan/texture.h
+    src/vulkan/texture.cpp
 )
 
 set(SOURCES
@@ -38,6 +42,7 @@ set(SOURCES
     src/simplerenderer.cpp
 )
 
+set(TEXTURE_DIR data/textures)
 set(SHADER_DIR data/shaders)
 file(GLOB SHADERS "${SHADER_DIR}/*.vert" "${SHADER_DIR}/*.frag")
 source_group("shaders" FILES ${SHADERS})
@@ -62,6 +67,11 @@ endif()
 ADD_CUSTOM_COMMAND( TARGET ${PROJECT_NAME}
    POST_BUILD
    COMMAND ${CMAKE_COMMAND} ARGS -E copy_if_different ${SDL2_RUNTIME_LIBRARIES} ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+ADD_CUSTOM_COMMAND( TARGET ${PROJECT_NAME}
+   POST_BUILD
+   COMMAND ${CMAKE_COMMAND} ARGS -E copy ${TEXTURE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/${TEXTURE_DIR}
 )
 
 find_program(GLSLANGVALIDATOR glslangValidator)
