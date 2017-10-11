@@ -7,10 +7,15 @@
 
 bool Texture::loadFromFile(Device* device, const std::string& filename)
 {
+    m_device = device;
+
     int texWidth, texHeight, texChannels;
-    stbi_uc* pixels = stbi_load("textures/texture.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    stbi_uc* pixels = stbi_load(filename.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
     if (!pixels)
+    {
+        printf("Error: could not load texture %s, reason: %s\n", filename.c_str(), stbi_failure_reason());
         return false;
+    }
 
     const uint32_t imageSize = texWidth * texHeight * 4;
 
@@ -50,9 +55,19 @@ bool Texture::loadFromFile(Device* device, const std::string& filename)
     vkDestroyBuffer(device->getVkDevice(), stagingBuffer, nullptr);
     vkFreeMemory(device->getVkDevice(), stagingBufferMemory, nullptr);
 
+    device->createImageView(m_image, VK_FORMAT_R8G8B8A8_UNORM, m_imageView);
+
     return true;
 }
 
 void Texture::destroy()
 {
+    vkDestroyImageView(m_device->getVkDevice(), m_imageView, nullptr);
+    m_imageView = VK_NULL_HANDLE;
+
+    vkDestroyImage(m_device->getVkDevice(), m_image, nullptr);
+    m_image = VK_NULL_HANDLE;
+
+    vkFreeMemory(m_device->getVkDevice(), m_imageMemory, nullptr);
+    m_imageMemory = VK_NULL_HANDLE;
 }
