@@ -8,7 +8,7 @@ class Device;
 class SwapChain
 {
 public:
-    void init(VkInstance instance, VkSurfaceKHR surface, const Device& device);
+    void init(VkInstance instance, VkSurfaceKHR surface, Device& device);
     bool create(uint32_t width, uint32_t height, bool vsync = false);
     void destroy();
 
@@ -36,13 +36,11 @@ private:
     VkSurfaceFormatKHR              getSwapChainFormat(std::vector<VkSurfaceFormatKHR> &surfaceFormats);
     VkPresentModeKHR                getSwapChainPresentMode(std::vector<VkPresentModeKHR> &presentModes, bool vsync);
 
+    Device* m_device;
+
     VkInstance m_instance = VK_NULL_HANDLE;
-    VkDevice m_device = VK_NULL_HANDLE;
-    VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
     VkSurfaceKHR m_surface = VK_NULL_HANDLE;
     VkSwapchainKHR m_swapChain = VK_NULL_HANDLE;
-    VkQueue m_presentQueue = VK_NULL_HANDLE;
-    VkQueue m_graphicsQueue = VK_NULL_HANDLE;
     std::vector<VkImage> m_images;
     std::vector<VkImageView> m_imageViews;
     VkSemaphore m_imageAvailableSemaphore = VK_NULL_HANDLE;

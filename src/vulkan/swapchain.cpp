@@ -5,14 +5,11 @@
 #include <vector>
 #include <iostream>
 
-void SwapChain::init(VkInstance instance, VkSurfaceKHR surface, const Device& device)
+void SwapChain::init(VkInstance instance, VkSurfaceKHR surface, Device& device)
 {
     m_instance = instance;
     m_surface = surface;
-    m_device = device.getVkDevice();
-    m_physicalDevice = device.getVkPysicalDevice();
-    m_presentQueue = device.getPresentationQueue();
-    m_graphicsQueue = device.getGraphicsQueue();
+    m_device = &device;
 
     createSemaphores();
 }
@@ -176,23 +173,23 @@ bool SwapChain::create(uint32_t width, uint32_t height, bool vsync)
 
     // Get physical m_device surface properties and formats
     VkSurfaceCapabilitiesKHR surfCaps;
-    VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physicalDevice, m_surface, &surfCaps));
+    VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_device->getVkPysicalDevice(), m_surface, &surfCaps));
 
     // Get available present modes
     uint32_t presentModeCount;
-    VK_CHECK_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(m_physicalDevice, m_surface, &presentModeCount, NULL));
+    VK_CHECK_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(m_device->getVkPysicalDevice(), m_surface, &presentModeCount, NULL));
     assert(presentModeCount > 0);
 
     std::vector<VkPresentModeKHR> presentModes(presentModeCount);
-    VK_CHECK_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(m_physicalDevice, m_surface, &presentModeCount, presentModes.data()));
+    VK_CHECK_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(m_device->getVkPysicalDevice(), m_surface, &presentModeCount, presentModes.data()));
 
     // Get list of supported surface formats
     uint32_t formatCount;
-    VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(m_physicalDevice, m_surface, &formatCount, NULL));
+    VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(m_device->getVkPysicalDevice(), m_surface, &formatCount, NULL));
     assert(formatCount > 0);
 
     std::vector<VkSurfaceFormatKHR> surfaceFormats(formatCount);
-    VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(m_physicalDevice, m_surface, &formatCount, surfaceFormats.data()));
+    VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(m_device->getVkPysicalDevice(), m_surface, &formatCount, surfaceFormats.data()));
 
     m_surfaceFormat = getSwapChainFormat(surfaceFormats);
     m_extent        = getSwapChainExtent(surfCaps);
@@ -228,7 +225,7 @@ bool SwapChain::create(uint32_t width, uint32_t height, bool vsync)
 
     // Set additional usage flag for blitting from the swapchain images if supported
     VkFormatProperties formatProps;
-    vkGetPhysicalDeviceFormatProperties(m_physicalDevice, m_surfaceFormat.format, &formatProps);
+    vkGetPhysicalDeviceFormatProperties(m_device->getVkPysicalDevice(), m_surfaceFormat.format, &formatProps);
     if (formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT)
     {
         swapchainCI.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
@@ -236,20 +233,20 @@ bool SwapChain::create(uint32_t width, uint32_t height, bool vsync)
 
     if (oldSwapchain)
     {
-        vkDeviceWaitIdle(m_device);
+        vkDeviceWaitIdle(m_device->getVkDevice());
     }
 
-    VK_CHECK_RESULT(vkCreateSwapchainKHR(m_device, &swapchainCI, nullptr, &m_swapChain));
+    VK_CHECK_RESULT(vkCreateSwapchainKHR(m_device->getVkDevice(), &swapchainCI, nullptr, &m_swapChain));
 
     // If an existing swap chain is re-created, destroy the old swap chain
     // This also cleans up all the presentable images
     destroySwapChain(oldSwapchain);
 
-    VK_CHECK_RESULT(vkGetSwapchainImagesKHR(m_device, m_swapChain, &imageCount, NULL));
+    VK_CHECK_RESULT(vkGetSwapchainImagesKHR(m_device->getVkDevice(), m_swapChain, &imageCount, NULL));
 
     // Get the swap chain images
     m_images.resize(imageCount);
-    VK_CHECK_RESULT(vkGetSwapchainImagesKHR(m_device, m_swapChain, &imageCount, m_images.data()));
+    VK_CHECK_RESULT(vkGetSwapchainImagesKHR(m_device->getVkDevice(), m_swapChain, &imageCount, m_images.data()));
 
     createImageViews(imageCount);
     
@@ -262,26 +259,7 @@ void SwapChain::createImageViews(uint32_t imageCount)
     m_imageViews.resize(imageCount);
     for (uint32_t i = 0; i < imageCount; i++)
     {
-        VkImageViewCreateInfo colorAttachmentView = {};
-        colorAttachmentView.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        colorAttachmentView.pNext = NULL;
-        colorAttachmentView.format = m_surfaceFormat.format;
-        colorAttachmentView.components = {
-            VK_COMPONENT_SWIZZLE_R,
-            VK_COMPONENT_SWIZZLE_G,
-            VK_COMPONENT_SWIZZLE_B,
-            VK_COMPONENT_SWIZZLE_A
-        };
-        colorAttachmentView.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        colorAttachmentView.subresourceRange.baseMipLevel = 0;
-        colorAttachmentView.subresourceRange.levelCount = 1;
-        colorAttachmentView.subresourceRange.baseArrayLayer = 0;
-        colorAttachmentView.subresourceRange.layerCount = 1;
-        colorAttachmentView.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        colorAttachmentView.flags = 0;
-        colorAttachmentView.image = m_images[i];
-
-        VK_CHECK_RESULT(vkCreateImageView(m_device, &colorAttachmentView, nullptr, &m_imageViews[i]));
+        m_device->createImageView(m_images[i], m_surfaceFormat.format, m_imageViews[i]);
     }
 }
 
@@ -290,15 +268,15 @@ void SwapChain::createSemaphores()
     VkSemaphoreCreateInfo semaphoreInfo = {};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-    VK_CHECK_RESULT(vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_imageAvailableSemaphore));
-    VK_CHECK_RESULT(vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_renderFinishedSemaphore));
+    VK_CHECK_RESULT(vkCreateSemaphore(m_device->getVkDevice(), &semaphoreInfo, nullptr, &m_imageAvailableSemaphore));
+    VK_CHECK_RESULT(vkCreateSemaphore(m_device->getVkDevice(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphore));
 }
 
 bool SwapChain::acquireNextImage(uint32_t& imageId)
 {
     // By setting timeout to UINT64_MAX we will always wait until the next image has been acquired or an actual error is thrown
     // With that we don't have to handle VK_NOT_READY
-    auto result = vkAcquireNextImageKHR(m_device, m_swapChain, UINT64_MAX, m_imageAvailableSemaphore, VK_NULL_HANDLE, &imageId);
+    auto result = vkAcquireNextImageKHR(m_device->getVkDevice(), m_swapChain, UINT64_MAX, m_imageAvailableSemaphore, VK_NULL_HANDLE, &imageId);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR)
     {
@@ -322,7 +300,7 @@ bool SwapChain::present(uint32_t imageId)
     presentInfo.pSwapchains = &m_swapChain;
     presentInfo.pImageIndices = &imageId;
 
-    auto result = vkQueuePresentKHR(m_presentQueue, &presentInfo);
+    auto result = vkQueuePresentKHR(m_device->getPresentationQueue(), &presentInfo);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
     {
@@ -340,8 +318,8 @@ void SwapChain::destroy()
 {
     destroySwapChain(m_swapChain);
 
-    vkDestroySemaphore(m_device, m_renderFinishedSemaphore, nullptr);
-    vkDestroySemaphore(m_device, m_imageAvailableSemaphore, nullptr);
+    vkDestroySemaphore(m_device->getVkDevice(), m_renderFinishedSemaphore, nullptr);
+    vkDestroySemaphore(m_device->getVkDevice(), m_imageAvailableSemaphore, nullptr);
 }
 
 void SwapChain::destroySwapChain(VkSwapchainKHR& swapChain)
@@ -350,9 +328,9 @@ void SwapChain::destroySwapChain(VkSwapchainKHR& swapChain)
     {
         for (uint32_t i = 0; i < m_imageViews.size(); i++)
         {
-            vkDestroyImageView(m_device, m_imageViews[i], nullptr);
+            vkDestroyImageView(m_device->getVkDevice(), m_imageViews[i], nullptr);
         }
-        vkDestroySwapchainKHR(m_device, swapChain, nullptr);
+        vkDestroySwapchainKHR(m_device->getVkDevice(), swapChain, nullptr);
         swapChain = VK_NULL_HANDLE;
     }
 }

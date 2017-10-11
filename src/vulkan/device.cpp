@@ -351,6 +351,30 @@ void Device::endSingleTimeCommands(VkCommandBuffer commandBuffer)
     vkFreeCommandBuffers(m_device, m_commandPool, 1, &commandBuffer);
 }
 
+void Device::createImageView(VkImage image, VkFormat format, VkImageView& imageView)
+{
+    VkImageViewCreateInfo viewInfo = {};
+    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    viewInfo.pNext = NULL;
+    viewInfo.format = format;
+    viewInfo.components = {
+        VK_COMPONENT_SWIZZLE_IDENTITY,
+        VK_COMPONENT_SWIZZLE_IDENTITY,
+        VK_COMPONENT_SWIZZLE_IDENTITY,
+        VK_COMPONENT_SWIZZLE_IDENTITY
+    };
+    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    viewInfo.subresourceRange.baseMipLevel = 0;
+    viewInfo.subresourceRange.levelCount = 1;
+    viewInfo.subresourceRange.baseArrayLayer = 0;
+    viewInfo.subresourceRange.layerCount = 1;
+    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    viewInfo.flags = 0;
+    viewInfo.image = image;
+
+    VK_CHECK_RESULT(vkCreateImageView(m_device, &viewInfo, nullptr, &imageView));
+}
+
 void Device::destroy()
 {
     vkDestroyCommandPool(m_device, m_commandPool, nullptr);
