@@ -38,7 +38,7 @@ set(SOURCES
     src/simplerenderer.cpp
 )
 
-set(SHADER_DIR shaders)
+set(SHADER_DIR data/shaders)
 file(GLOB SHADERS "${SHADER_DIR}/*.vert" "${SHADER_DIR}/*.frag")
 source_group("shaders" FILES ${SHADERS})
 source_group("source" FILES ${SOURCES})
@@ -66,14 +66,13 @@ ADD_CUSTOM_COMMAND( TARGET ${PROJECT_NAME}
 
 find_program(GLSLANGVALIDATOR glslangValidator)
 
-set(SHADER_OUTPUT_DIR ${CMAKE_BINARY_DIR}/shaders/)
+set(SHADER_OUTPUT_DIR ${CMAKE_BINARY_DIR}/${SHADER_DIR}/)
 file(MAKE_DIRECTORY ${SHADER_OUTPUT_DIR})
 foreach(SHADER ${SHADERS})
     get_filename_component(filename ${SHADER} NAME)
     add_custom_command(
         OUTPUT ${SHADER}
 	    COMMAND ${GLSLANGVALIDATOR} -V ${SHADER} -o ${SHADER_OUTPUT_DIR}${filename}.spv
-        DEPENDS ${SHADER}
         COMMENT "Rebuilding ${SHADER}.spv"
     )
 endforeach(SHADER)

@@ -4,7 +4,7 @@
 bool SimpleRenderer::setup()
 {
     m_pipelineLayout.init(m_device.getVkDevice());
-    m_shader.createFromFiles(m_device.getVkDevice(), "shaders/simple.vert.spv", "shaders/simple.frag.spv");
+    m_shader.createFromFiles(m_device.getVkDevice(), "data/shaders/simple.vert.spv", "data/shaders/simple.frag.spv");
 
     const float vertices[] = {
        -0.25, -0.5,
