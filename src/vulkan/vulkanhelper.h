@@ -2,7 +2,7 @@
 
 #include <vulkan/vulkan.h>
 #include <iostream>
-#include <string>
+#include <string.h>
 #include <assert.h>
 
 std::string errorString(VkResult errorCode);
