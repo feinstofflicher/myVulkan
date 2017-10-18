@@ -85,8 +85,9 @@ file(MAKE_DIRECTORY ${SHADER_OUTPUT_DIR})
 foreach(SHADER ${SHADERS})
     get_filename_component(filename ${SHADER} NAME)
     add_custom_command(
-        OUTPUT ${SHADER}
-	    COMMAND ${GLSLANGVALIDATOR} -V ${SHADER} -o ${SHADER_OUTPUT_DIR}${filename}.spv
+        TARGET ${PROJECT_NAME}
+        POST_BUILD
+        COMMAND ${GLSLANGVALIDATOR} -V ${SHADER} -o ${SHADER_OUTPUT_DIR}${filename}.spv
         COMMENT "Rebuilding ${SHADER}.spv"
     )
 endforeach(SHADER)
